@@ -45,6 +45,11 @@ Compilation
 Follow the instructions at the [megasource][megasource] repository page.
 
 ### *nix
+```
+sudo apt install libsdl2-dev libfreetype-dev libmodplug-dev libopenal-dev libtheora-dev libvorbis-dev libmpg123-dev libluajit-5.1-dev
+cmake -B build -S. --install-prefix $PWD/prefix
+cmake --build build -j$(nproc)
+```
 Run `platform/unix/automagic` from the repository root, then run ./configure and make.
 
 	$ platform/unix/automagic
