@@ -46,12 +46,13 @@ Follow the instructions at the [megasource][megasource] repository page.
 
 ### *nix
 Run `platform/unix/automagic` from the repository root, then run ./configure and make.
+```
 	$ sudo apt install autoconf libtool libsdl2-dev libluajit-5.1-dev libopenal-dev libfreetype6-dev libmodplug-dev libvorbis-dev libtheora-dev libmpg123-dev
 	$ platform/unix/automagic
 	$ ./configure
 	$ make
  	$ sudo make install
-
+```
 When using a source release, automagic has already been run, and the first step can be skipped.
 
 ### macOS
