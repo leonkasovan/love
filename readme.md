@@ -50,6 +50,7 @@ Run `platform/unix/automagic` from the repository root, then run ./configure and
 	$ platform/unix/automagic
 	$ ./configure
 	$ make
+ 	$ sudo make install
 
 When using a source release, automagic has already been run, and the first step can be skipped.
 
