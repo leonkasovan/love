@@ -31,6 +31,7 @@
 #include "magpie/KTXHandler.h"
 #include "magpie/PKMHandler.h"
 #include "magpie/ASTCHandler.h"
+#include "magpie/SFFHandler.h"
 
 namespace love
 {
@@ -54,6 +55,7 @@ Image::Image()
 		new KTXHandler,
 		new PKMHandler,
 		new ASTCHandler,
+		new SFFHandler,
 	};
 }
 
