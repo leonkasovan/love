@@ -3,6 +3,16 @@ LÖVE is an *awesome* framework you can use to make 2D games in Lua. It's free, 
 [![Build Status: Windows](https://ci.appveyor.com/api/projects/status/chc0hdr08wv1d5c7?svg=true)](https://ci.appveyor.com/project/slime73/love)
 [![Build Status: Github CI](https://github.com/love2d/love/workflows/continuous-integration/badge.svg)](https://github.com/love2d/love/actions?query=workflow%3Acontinuous-integration)
 
+TODO
+----
+1. implement kfm = love.graphics.newMugenSprite("kfm.sff")
+ - update src/modules/graphics/wrap_Graphics.cpp
+ - add src/modules/graphics/MugenSprite.cpp
+2. implement love.graphics.drawMugenSprite
+ - love.graphics.drawMugenSprite(kfm, 9000,0)
+ - love.graphics.drawMugenSprite(kfm, 9000,0, palette)
+3. implement kfm_anim = love.graphics.newMugenAnim("kfm.air", kfm)
+
 Documentation
 -------------
 
