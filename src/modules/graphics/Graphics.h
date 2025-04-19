@@ -46,6 +46,8 @@
 #include "font/Font.h"
 #include "video/VideoStream.h"
 #include "data/HashFunction.h"
+#include "Palette.h"
+#include "MugenSprite.h"
 
 // C++
 #include <string>
@@ -494,7 +496,9 @@ public:
 	Mesh *newMesh(const std::vector<Mesh::AttribFormat> &vertexformat, int vertexcount, PrimitiveType drawmode, vertex::Usage usage);
 	Mesh *newMesh(const std::vector<Mesh::AttribFormat> &vertexformat, const void *data, size_t datasize, PrimitiveType drawmode, vertex::Usage usage);
 
-	Text *newText(Font *font, const std::vector<Font::ColoredString> &text = {});
+	Text* newText(Font* font, const std::vector<Font::ColoredString>& text = {});
+	MugenSprite* newMugenSprite(const char* filename);
+	MugenSprite* newMugenSprite(const std::string &filename);
 
 	bool validateShader(bool gles, const std::string &vertex, const std::string &pixel, std::string &err);
 
@@ -721,8 +725,9 @@ public:
 	void captureScreenshot(const ScreenshotInfo &info);
 
 	void draw(Drawable *drawable, const Matrix4 &m);
-	void draw(Texture *texture, Quad *quad, const Matrix4 &m);
-	void drawLayer(Texture *texture, int layer, const Matrix4 &m);
+	void draw(Texture* texture, Quad* quad, const Matrix4& m);
+	void draw(Drawable* drawable, Palette* pal, const Matrix4& m);
+	void drawLayer(Texture* texture, int layer, const Matrix4& m);
 	void drawLayer(Texture *texture, int layer, Quad *quad, const Matrix4 &m);
 	void drawInstanced(Mesh *mesh, const Matrix4 &m, int instancecount);
 
@@ -869,8 +874,8 @@ public:
 	Vector2 inverseTransformPoint(Vector2 point);
 
 	virtual void draw(const DrawCommand &cmd) = 0;
-	virtual void draw(const DrawIndexedCommand &cmd) = 0;
-	virtual void drawQuads(int start, int count, const vertex::Attributes &attributes, const vertex::BufferBindings &buffers, Texture *texture) = 0;
+	virtual void draw(const DrawIndexedCommand& cmd) = 0;
+	virtual void drawQuads(int start, int count, const vertex::Attributes& attributes, const vertex::BufferBindings& buffers, Texture* texture) = 0;
 
 	void flushStreamDraws();
 	StreamVertexData requestStreamDraw(const StreamDrawCommand &command);

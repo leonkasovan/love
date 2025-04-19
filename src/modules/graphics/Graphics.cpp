@@ -1207,6 +1207,11 @@ void Graphics::draw(Drawable *drawable, const Matrix4 &m)
 	drawable->draw(this, m);
 }
 
+void Graphics::draw(Drawable* drawable, Palette* pal, const Matrix4& m) {
+	// Novan: Complete this code
+	drawable->draw(this, m);
+}
+
 void Graphics::draw(Texture *texture, Quad *quad, const Matrix4 &m)
 {
 	texture->draw(this, quad, m);
@@ -1872,6 +1877,16 @@ bool Graphics::getConstant(StackType in, const char *&out)
 std::vector<std::string> Graphics::getConstants(StackType)
 {
 	return stackTypes.getNames();
+}
+
+MugenSprite* Graphics::newMugenSprite(const char* filename)
+{
+	return new MugenSprite(filename);
+}
+
+MugenSprite* Graphics::newMugenSprite(const std::string& filename)
+{
+	return new MugenSprite(filename);
 }
 
 StringMap<Graphics::DrawMode, Graphics::DRAW_MAX_ENUM>::Entry Graphics::drawModeEntries[] =

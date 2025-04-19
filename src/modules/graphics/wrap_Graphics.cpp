@@ -2333,7 +2333,8 @@ int w_draw(lua_State *L)
 {
 	Drawable *drawable = nullptr;
 	Texture *texture = nullptr;
-	Quad *quad = nullptr;
+	Quad* quad = nullptr;
+	Palette* palette = nullptr;
 	int startidx = 2;
 
 	if (luax_istype(L, 2, Quad::type))
@@ -2349,7 +2350,12 @@ int w_draw(lua_State *L)
 	else
 	{
 		drawable = luax_checktype<Drawable>(L, 1);
-		startidx = 2;
+		if (luax_istype(L, 2, Palette::type)) {
+			palette = luax_checktype<Palette>(L, 2);
+			startidx = 3;
+		} else {
+			startidx = 2;
+		}
 	}
 
 	luax_checkstandardtransform(L, startidx, [&](const Matrix4 &m)
@@ -2358,6 +2364,8 @@ int w_draw(lua_State *L)
 		{
 			if (texture && quad)
 				instance()->draw(texture, quad, m);
+			else if (drawable && palette)
+				instance()->draw(drawable, palette, m);
 			else
 				instance()->draw(drawable, m);
 		});
@@ -2905,6 +2913,18 @@ int w_inverseTransformPoint(lua_State *L)
 }
 
 
+int w_newMugenSprite(lua_State* L) {
+	luax_checkgraphicscreated(L);
+
+	const char* filename = luaL_checkstring(L, 1);
+
+	MugenSprite* spr = instance()->newMugenSprite(filename);
+
+	luax_pushtype(L, spr);
+	spr->release();
+	return 1;
+}
+
 // List of functions to wrap.
 static const luaL_Reg functions[] =
 {
@@ -2926,6 +2946,7 @@ static const luaL_Reg functions[] =
 	{ "newShader", w_newShader },
 	{ "newMesh", w_newMesh },
 	{ "newText", w_newText },
+	{ "newMugenSprite", w_newMugenSprite },
 	{ "_newVideo", w_newVideo },
 
 	{ "validateShader", w_validateShader },
