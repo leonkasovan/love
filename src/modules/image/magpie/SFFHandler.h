@@ -21,6 +21,8 @@
 #pragma once
 
 #include "image/FormatHandler.h"
+#include "common/Exception.h"
+#include "mugen/mugen_sff.h"
 
 namespace love
 {

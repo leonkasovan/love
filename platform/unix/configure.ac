@@ -96,6 +96,7 @@ AS_VAR_IF([enable_module_graphics], [yes], [enable_library_glslang=yes], [enable
 AS_VAR_IF([enable_module_image], [yes], [enable_library_lodepng=yes], [enable_library_lodepng=no])
 AS_VAR_IF([enable_module_data], [yes], [enable_library_lua53=yes], [])
 AS_VAR_IF([enable_module_math], [yes], [enable_library_lz4=yes], [enable_library_lz4=no])
+AS_VAR_IF([enable_module_graphics], [yes], [enable_library_mugen=yes], [enable_library_mugen=no])
 AS_VAR_IF([enable_module_math], [yes], [enable_library_noise1234=yes], [enable_library_noise1234=no])
 AS_VAR_IF([enable_module_image], [yes], [enable_library_stb=yes], [enable_library_stb=no])
 AS_VAR_IF([enable_module_image], [yes], [enable_library_tinyexr=yes], [enable_library_tinyexr=no])
