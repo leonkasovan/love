@@ -2419,7 +2419,30 @@ int w_drawInstanced(lua_State *L)
 	return 0;
 }
 
-int w_print(lua_State *L)
+int w_drawMugenSprite(lua_State* L) {
+	MugenSprite* sff = luax_checktype<MugenSprite>(L, 1);
+	Palette* pal;
+	int64_t group;
+	int number, x, y;
+
+	if (luax_istype(L, 2, Palette::type)) {
+		pal = luax_checktype<Palette>(L, 2);
+		group = luaL_checkinteger(L, 3);
+		number = luaL_checkinteger(L, 4);
+		x = luaL_checkinteger(L, 5);
+		y = luaL_checkinteger(L, 6);
+		instance()->drawMugenSprite(sff, pal, group, number, x, y);
+	} else {
+		group = luaL_checkinteger(L, 2);
+		number = luaL_checkinteger(L, 3);
+		x = luaL_checkinteger(L, 4);
+		y = luaL_checkinteger(L, 5);
+		instance()->drawMugenSprite(sff, group, number, x, y);
+	}
+	return 0;
+}
+
+int w_print(lua_State* L)
 {
 	std::vector<Font::ColoredString> str;
 	luax_checkcoloredstring(L, 1, str);
@@ -3005,6 +3028,7 @@ static const luaL_Reg functions[] =
 	{ "draw", w_draw },
 	{ "drawLayer", w_drawLayer },
 	{ "drawInstanced", w_drawInstanced },
+	{ "drawMugenSprite", w_drawMugenSprite },
 
 	{ "print", w_print },
 	{ "printf", w_printf },

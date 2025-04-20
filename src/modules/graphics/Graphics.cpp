@@ -1232,6 +1232,14 @@ void Graphics::drawInstanced(Mesh *mesh, const Matrix4 &m, int instancecount)
 	mesh->drawInstanced(this, m, instancecount);
 }
 
+void Graphics::drawMugenSprite(MugenSprite* sff, int group, int number, int x, int y) {
+	sff->draw(this, group, number, x, y);
+}
+
+void Graphics::drawMugenSprite(MugenSprite* sff, Palette* pal, int group, int number, int x, int y) {
+	sff->draw(this, pal, group, number, x, y);
+}
+
 void Graphics::print(const std::vector<Font::ColoredString> &str, const Matrix4 &m)
 {
 	checkSetDefaultFont();

@@ -8,12 +8,16 @@
 
 // LOVE
 #include "common/Object.h"
+#include "Palette.h"
 
 namespace love
 {
 namespace graphics
 {
 
+// Forward declarations (MUST!!)
+class Graphics;
+	
 class MugenSprite : public Object
 {
 public:
@@ -24,6 +28,8 @@ public:
 	MugenSprite(std::string sff_file);
 	~MugenSprite();
 
+	void draw(Graphics* gfx, int group, int number, int x, int y);
+	void draw(Graphics* gfx, Palette* pal, int group, int number, int x, int y);
 private:
 
 }; // MugenSprite

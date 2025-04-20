@@ -43,6 +43,14 @@ MugenSprite::MugenSprite(std::string sff_file)
 {
 }
 
+void MugenSprite::draw(Graphics* gfx, int group, int number, int x, int y) {
+
+}
+
+void MugenSprite::draw(Graphics* gfx, Palette* pal, int group, int number, int x, int y) {
+
+}
+
 // Destructor
 MugenSprite::~MugenSprite()
 {

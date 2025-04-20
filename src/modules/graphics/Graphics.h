@@ -498,7 +498,7 @@ public:
 
 	Text* newText(Font* font, const std::vector<Font::ColoredString>& text = {});
 	MugenSprite* newMugenSprite(const char* filename);
-	MugenSprite* newMugenSprite(const std::string &filename);
+	MugenSprite* newMugenSprite(const std::string& filename);
 
 	bool validateShader(bool gles, const std::string &vertex, const std::string &pixel, std::string &err);
 
@@ -725,11 +725,13 @@ public:
 	void captureScreenshot(const ScreenshotInfo &info);
 
 	void draw(Drawable *drawable, const Matrix4 &m);
-	void draw(Texture* texture, Quad* quad, const Matrix4& m);
-	void draw(Drawable* drawable, Palette* pal, const Matrix4& m);
-	void drawLayer(Texture* texture, int layer, const Matrix4& m);
+	void draw(Texture *texture, Quad *quad, const Matrix4 &m);
+	void draw(Drawable *drawable, Palette *pal, const Matrix4 &m);
+	void drawLayer(Texture *texture, int layer, const Matrix4 &m);
 	void drawLayer(Texture *texture, int layer, Quad *quad, const Matrix4 &m);
 	void drawInstanced(Mesh *mesh, const Matrix4 &m, int instancecount);
+	void drawMugenSprite(MugenSprite* sff, int group, int number, int x, int y);
+	void drawMugenSprite(MugenSprite* sff, Palette* pal, int group, int number, int x, int y);
 
 	/**
 	 * Draws text at the specified coordinates

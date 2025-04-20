@@ -9,8 +9,8 @@ TODO
  - update src/modules/graphics/wrap_Graphics.cpp
  - add src/modules/graphics/MugenSprite.cpp
 2. implement love.graphics.drawMugenSprite
- - love.graphics.drawMugenSprite(kfm, 9000,0)
- - love.graphics.drawMugenSprite(kfm, 9000,0, palette)
+ - love.graphics.drawMugenSprite(kfm, 9000,0, x,y)
+ - love.graphics.drawMugenSprite(kfm, palette, 9000,0, x,y)
 3. implement kfm_anim = love.graphics.newMugenAnim("kfm.air", kfm)
 
 Documentation
