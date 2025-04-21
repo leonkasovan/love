@@ -100,6 +100,18 @@ int w_Shader_sendFloats(lua_State *L, int startidx, Shader *shader, const Shader
 		}
 	}
 
+	printf("w_Shader_sendFloats: %s baseType=%d\n", info->name.c_str(), info->baseType);
+	printf("w_Shader_sendFloats: %s components=%d count=%d\n", info->name.c_str(), components, count);
+	printf("w_Shader_sendFloats: %s values[0]=%f\n", info->name.c_str(), values[0]);
+	printf("w_Shader_sendFloats: %s values[1]=%f\n", info->name.c_str(), values[1]);
+	printf("w_Shader_sendFloats: %s values[2]=%f\n", info->name.c_str(), values[2]);
+	printf("w_Shader_sendFloats: %s values[3]=%f\n", info->name.c_str(), values[3]);
+	printf("w_Shader_sendFloats: %s values[4]=%f\n", info->name.c_str(), values[4]);
+	printf("w_Shader_sendFloats: %s values[5]=%f\n", info->name.c_str(), values[5]);
+	printf("w_Shader_sendFloats: %s values[6]=%f\n", info->name.c_str(), values[6]);
+	printf("w_Shader_sendFloats: %s values[7]=%f\n", info->name.c_str(), values[7]);
+	printf("w_Shader_sendFloats: %s values[8]=%f\n", info->name.c_str(), values[8]);
+
 	luax_catchexcept(L, [&]() { shader->updateUniform(info, count); });
 	return 0;
 }
@@ -289,6 +301,7 @@ int w_Shader_sendTextures(lua_State *L, int startidx, Shader *shader, const Shad
 
 static int w_Shader_sendLuaValues(lua_State *L, int startidx, Shader *shader, const Shader::UniformInfo *info, const char *name)
 {
+	printf("w_Shader_sendLuaValues: %s baseType=%d\n", name, info->baseType);
 	switch (info->baseType)
 	{
 	case Shader::UNIFORM_FLOAT:

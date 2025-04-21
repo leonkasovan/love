@@ -1,10 +1,240 @@
 #include "mugen_sff.h"
+#include "graphics/MugenSprite.h"
+#include "graphics/Image.h"
+#include "graphics/Graphics.h"
+#include "image/Image.h"
+#include "image/ImageData.h"
+
+namespace love {
+namespace graphics {
 
 Sprite* newSprite() {
 	Sprite* sprite = (Sprite*) malloc(sizeof(Sprite));
 	memset(sprite, 0, sizeof(Sprite));
 	sprite->palidx = -1;
 	return sprite;
+}
+
+void printSprite(Sprite* sprite) {
+	printf("Sprite: Group %d, Number %d, Size (%d,%d), Offset (%d,%d), palidx %d, rle %d, coldepth %d\n",
+		sprite->Group, sprite->Number,
+		sprite->Size[0], sprite->Size[1],
+		sprite->Offset[0], sprite->Offset[1],
+		sprite->palidx, -sprite->rle, sprite->coldepth);
+}
+
+int readSffHeader(MugenSprite *sff, FILE* file, uint32_t* lofs, uint32_t* tofs) {
+	// Validate header by comparing 12 first bytes with "ElecbyteSpr\x0"
+	char headerCheck[12];
+	fread(headerCheck, 12, 1, file);
+	if (memcmp(headerCheck, "ElecbyteSpr\0", 12) != 0) {
+		fprintf(stderr, "Invalid SFF file [%s]\n", headerCheck);
+		return -1;
+	}
+
+	// Read versions in the header
+	if (fread(&sff->header.Ver3, 1, 1, file) != 1) {
+		fprintf(stderr, "Error reading version\n");
+		return -1;
+	}
+	if (fread(&sff->header.Ver2, 1, 1, file) != 1) {
+		fprintf(stderr, "Error reading version\n");
+		return -1;
+	}
+	if (fread(&sff->header.Ver1, 1, 1, file) != 1) {
+		fprintf(stderr, "Error reading version\n");
+		return -1;
+	}
+	if (fread(&sff->header.Ver0, 1, 1, file) != 1) {
+		fprintf(stderr, "Error reading version\n");
+		return -1;
+	}
+	uint32_t dummy;
+	if (fread(&dummy, sizeof(uint32_t), 1, file) != 1) {
+		fprintf(stderr, "Error reading dummy\n");
+		return -1;
+	}
+
+	if (sff->header.Ver0 == 2) {
+		for (int i = 0; i < 4; i++) {
+			if (fread(&dummy, sizeof(uint32_t), 1, file) != 1) {
+				fprintf(stderr, "Error reading dummy\n");
+				return -1;
+			}
+		}
+		// read FirstSpriteHeaderOffset
+		if (fread(&sff->header.FirstSpriteHeaderOffset, sizeof(uint32_t), 1, file) != 1) {
+			fprintf(stderr, "Error reading FirstSpriteHeaderOffset\n");
+			return -1;
+		}
+		// read NumberOfSprites
+		if (fread(&sff->header.NumberOfSprites, sizeof(uint32_t), 1, file) != 1) {
+			fprintf(stderr, "Error reading NumberOfSprites\n");
+			return -1;
+		}
+		// read FirstPaletteHeaderOffset
+		if (fread(&sff->header.FirstPaletteHeaderOffset, sizeof(uint32_t), 1, file) != 1) {
+			fprintf(stderr, "Error reading FirstPaletteHeaderOffset\n");
+			return -1;
+		}
+		// read NumberOfPalettes
+		if (fread(&sff->header.NumberOfPalettes, sizeof(uint32_t), 1, file) != 1) {
+			fprintf(stderr, "Error reading NumberOfPalettes\n");
+			return -1;
+		}
+		// read lofs
+		if (fread(lofs, sizeof(uint32_t), 1, file) != 1) {
+			fprintf(stderr, "Error reading lofs\n");
+			return -1;
+		}
+		if (fread(&dummy, sizeof(uint32_t), 1, file) != 1) {
+			fprintf(stderr, "Error reading dummy\n");
+			return -1;
+		}
+		// read tofs
+		if (fread(tofs, sizeof(uint32_t), 1, file) != 1) {
+			fprintf(stderr, "Error reading tofs\n");
+			return -1;
+		}
+	} else if (sff->header.Ver0 == 1) {
+		// read NumberOfSprites
+		if (fread(&sff->header.NumberOfSprites, sizeof(uint32_t), 1, file) != 1) {
+			fprintf(stderr, "Error reading NumberOfSprites\n");
+			return -1;
+		}
+		// read FirstSpriteHeaderOffset
+		if (fread(&sff->header.FirstSpriteHeaderOffset, sizeof(uint32_t), 1, file) != 1) {
+			fprintf(stderr, "Error reading FirstSpriteHeaderOffset\n");
+			return -1;
+		}
+		sff->header.FirstPaletteHeaderOffset = 0;
+		sff->header.NumberOfPalettes = 0;
+		*lofs = 0;
+		*tofs = 0;
+	} else {
+		fprintf(stderr, "Unsupported SFF version: %d\n", sff->header.Ver0);
+		return -1;
+	}
+
+	return 0;
+}
+
+int readSpriteHeaderV1(Sprite* sprite, FILE* file, uint32_t* ofs, uint32_t* size, uint16_t* link) {
+	// Read ofs
+	if (fread(ofs, sizeof(uint32_t), 1, file) != 1) {
+		fprintf(stderr, "Error reading ofs\n");
+		return -1;
+	}
+	// Read size
+	if (fread(size, sizeof(uint32_t), 1, file) != 1) {
+		fprintf(stderr, "Error reading size\n");
+		return -1;
+	}
+	if (fread(&sprite->Offset[0], sizeof(int16_t), 1, file) != 1) {
+		fprintf(stderr, "Error reading sprite offset\n");
+		return -1;
+	}
+	if (fread(&sprite->Offset[1], sizeof(int16_t), 1, file) != 1) {
+		fprintf(stderr, "Error reading sprite offset\n");
+		return -1;
+	}
+	// Read sprite header
+	if (fread(&sprite->Group, sizeof(int16_t), 1, file) != 1) {
+		fprintf(stderr, "Error reading sprite group\n");
+		return -1;
+	}
+	if (fread(&sprite->Number, sizeof(int16_t), 1, file) != 1) {
+		fprintf(stderr, "Error reading sprite number\n");
+		return -1;
+	}
+	// Read the link to the next sprite header
+	if (fread(link, sizeof(uint16_t), 1, file) != 1) {
+		fprintf(stderr, "Error reading sprite link\n");
+		return -1;
+	}
+	// Print sprite header information
+	// printf("Sprite v1 Group, Number: %d, %d\n", sprite->Group, sprite->Number);
+	return 0;
+}
+
+int readSpriteHeaderV2(Sprite* sprite, FILE* file, uint32_t* ofs, uint32_t* size, uint32_t lofs, uint32_t tofs, uint16_t* link) {
+	// Read sprite header
+	if (fread(&sprite->Group, sizeof(int16_t), 1, file) != 1) {
+		fprintf(stderr, "Error reading sprite group\n");
+		return -1;
+	}
+	if (fread(&sprite->Number, sizeof(int16_t), 1, file) != 1) {
+		fprintf(stderr, "Error reading sprite number\n");
+		return -1;
+	}
+	if (fread(&sprite->Size[0], sizeof(int16_t), 1, file) != 1) {
+		fprintf(stderr, "Error reading sprite size\n");
+		return -1;
+	}
+	if (fread(&sprite->Size[1], sizeof(int16_t), 1, file) != 1) {
+		fprintf(stderr, "Error reading sprite size\n");
+		return -1;
+	}
+	if (fread(&sprite->Offset[0], sizeof(int16_t), 1, file) != 1) {
+		fprintf(stderr, "Error reading sprite offset\n");
+		return -1;
+	}
+	if (fread(&sprite->Offset[1], sizeof(int16_t), 1, file) != 1) {
+		fprintf(stderr, "Error reading sprite offset\n");
+		return -1;
+	}
+	// Read the link to the next sprite header
+	if (fread(link, sizeof(uint16_t), 1, file) != 1) {
+		fprintf(stderr, "Error reading sprite link\n");
+		return -1;
+	}
+	char format;
+	if (fread(&format, sizeof(char), 1, file) != 1) {
+		fprintf(stderr, "Error reading sprite format\n");
+		return -1;
+	}
+	sprite->rle = -format;
+	// Read color depth
+	if (fread(&sprite->coldepth, sizeof(uint8_t), 1, file) != 1) {
+		fprintf(stderr, "Error reading color depth\n");
+		return -1;
+	}
+	// Read ofs
+	if (fread(ofs, sizeof(uint32_t), 1, file) != 1) {
+		fprintf(stderr, "Error reading ofs\n");
+		return -1;
+	}
+	// Read size
+	if (fread(size, sizeof(uint32_t), 1, file) != 1) {
+		fprintf(stderr, "Error reading size\n");
+		return -1;
+	}
+	uint16_t tmp;
+	// Read tmp
+	if (fread(&tmp, sizeof(uint16_t), 1, file) != 1) {
+		fprintf(stderr, "Error reading tmp\n");
+		return -1;
+	}
+	sprite->palidx = tmp;
+	// Read tmp
+	if (fread(&tmp, sizeof(uint16_t), 1, file) != 1) {
+		fprintf(stderr, "Error reading tmp\n");
+		return -1;
+	}
+	if ((tmp & 1) == 0) {
+		*ofs += lofs;
+	} else {
+		*ofs += tofs;
+	}
+
+	// Print sprite header information
+	// printf("Sprite v2 (%d,%d) ofs=%d size=%d\n", sprite->Group, sprite->Number, *ofs, *size);
+	// printf("Sprite Size: %d x %d\n", sprite->Size[0], sprite->Size[1]);
+	// printf("Sprite Offset: %d x %d\n", sprite->Offset[0], sprite->Offset[1]);
+	// printf("Sprite Link: %d\n", *link);
+	// printf("Sprite Format: %d\n", format);
+
+	return 0;
 }
 
 uint32_t readSffHeader(Sff* sff, uint8_t* data, uint32_t* lofs, uint32_t* tofs) {
@@ -107,7 +337,6 @@ uint32_t readSpriteHeaderV1(Sprite* sprite, uint8_t* data, uint32_t* ofs, uint32
 }
 
 void spriteCopy(Sprite* dst, const Sprite* src) {
-	dst->Pal = src->Pal;
 	dst->Group = src->Group;
 	dst->Number = src->Number;
 	dst->Size[0] = src->Size[0];
@@ -200,6 +429,15 @@ uint8_t* RlePcxDecode(Sprite* s, uint8_t* srcPx, size_t srcLen) {
 	return dstPx;
 }
 
+void setImageFromSprite(Sprite* s, uint8_t* px) {
+	love::graphics::Image::Slices slices(TEXTURE_2D);
+	image::ImageData* imgData = new love::image::ImageData(s->Size[0], s->Size[1], love::PIXELFORMAT_R8, px, true);
+	slices.set(0, 0, imgData);
+	auto gfx = Module::getInstance<graphics::Graphics>(Module::M_GRAPHICS);
+	love::graphics::Image::Settings settings;
+	s->image = gfx->newImage(slices, settings);
+}
+
 int readSpriteDataV1(Sprite* s, u_int8_t* data, Sff* sff, uint64_t offset, uint32_t datasize, uint32_t nextSubheader, Sprite* prev, std::vector<love::Color32*>* palettes, bool c00, bool paletteSame) {
 	if (nextSubheader > offset) {
 		// Ignore datasize except last
@@ -232,7 +470,7 @@ int readSpriteDataV1(Sprite* s, u_int8_t* data, Sff* sff, uint64_t offset, uint3
 	memcpy(srcPx, data + p_offset, srcLen);
 	p_offset += srcLen;
 
-	s->data = NULL;
+	// s->data = NULL;
 	sff->format_usage[1]++;
 	// printf("PCX: ps=%d ", ps);
 	if (paletteSame) {
@@ -262,9 +500,7 @@ int readSpriteDataV1(Sprite* s, u_int8_t* data, Sff* sff, uint64_t offset, uint3
 			fprintf(stderr, "Error decoding PCX sprite data\n");
 			return -1;
 		}
-		// palHash = fast_hash(pal, 256);
-		// printf("old_pal=%d\n", s->palidx);
-		s->data = px;
+		setImageFromSprite(s, px);
 	} else {
 		love::Color32* new_palette = new love::Color32[256];
 		if (c00 || paletteSame) {
@@ -299,12 +535,7 @@ int readSpriteDataV1(Sprite* s, u_int8_t* data, Sff* sff, uint64_t offset, uint3
 			fprintf(stderr, "Error decoding PCX sprite data\n");
 			return -1;
 		}
-		// printf("[DEBUG] src/main.cpp:%d\n", __LINE__);
-		// palHash = fast_hash(pal, 256);
-		// printf("new_pal=%d\n", s->palidx);
-		// if (opt_extract) save_as_png(pngFilename, s->Size[0], s->Size[1], px, png_palette);
-		s->data = px;
-		// free(px);
+		setImageFromSprite(s, px);
 	}
 	// printf("[DEBUG] src/main.cpp:%d ps=%d paletteSame=%d palidx=%d palLen=%d palSize=%d srcLen=%ld\n", __LINE__, ps, paletteSame, s->palidx, palettes->size(), palSize, srcLen);
 	// printf("%u\n", palHash);
@@ -679,14 +910,14 @@ uint32_t readSpriteDataV2(Sprite* s, uint8_t* data, uint64_t offset, uint32_t da
 			sff->palette_usage[s->palidx]++;
 		}
 
-		s->data = NULL;
+		s->image = NULL;
 		sff->format_usage[format]++;
 		switch (format) {
 		case 2:
 			px = Rle8Decode(s, srcPx, srcLen);
 			free(srcPx);
 			if (px) {
-				s->data = px;
+				setImageFromSprite(s, px);
 			} else {
 				fprintf(stderr, "Error decoding RLE8 sprite data\n");
 				return 0;
@@ -696,7 +927,7 @@ uint32_t readSpriteDataV2(Sprite* s, uint8_t* data, uint64_t offset, uint32_t da
 			px = Rle5Decode(s, srcPx, srcLen);
 			free(srcPx);
 			if (px) {
-				s->data = px;
+				setImageFromSprite(s, px);
 			} else {
 				fprintf(stderr, "Error decoding RLE5 sprite data\n");
 				return 0;
@@ -706,7 +937,7 @@ uint32_t readSpriteDataV2(Sprite* s, uint8_t* data, uint64_t offset, uint32_t da
 			px = Lz5Decode(s, srcPx, srcLen);
 			free(srcPx);
 			if (px) {
-				s->data = px;
+				setImageFromSprite(s, px);
 			} else {
 				fprintf(stderr, "Error decoding LZ5 sprite data\n");
 				return 0;
@@ -716,7 +947,7 @@ uint32_t readSpriteDataV2(Sprite* s, uint8_t* data, uint64_t offset, uint32_t da
 		case 10: // NOT OK
 			px = PngDecode(s, data + p_offset, datasize);
 			if (px) {
-				s->data = px;
+				setImageFromSprite(s, px);
 				// sff->palette_usage[s->palidx]++;
 			} else {
 				fprintf(stderr, "Error decoding PNG10 sprite data\n");
@@ -726,8 +957,8 @@ uint32_t readSpriteDataV2(Sprite* s, uint8_t* data, uint64_t offset, uint32_t da
 		case 11:
 			px = PngDecode(s, data + p_offset, datasize);
 			if (px) {
-				s->data = px;
-				sff->palette_usage[-1]++;
+				setImageFromSprite(s, px);
+				// sff->palette_usage[-1]++;
 			} else {
 				fprintf(stderr, "Error decoding PNG11 sprite data\n");
 				return 0;
@@ -736,8 +967,9 @@ uint32_t readSpriteDataV2(Sprite* s, uint8_t* data, uint64_t offset, uint32_t da
 		case 12:
 			px = PngDecode(s, data + p_offset, datasize);
 			if (px) {
-				s->data = px;
-				sff->palette_usage[-1]++;
+				// s->data = px;
+				setImageFromSprite(s, px);
+				// sff->palette_usage[-1]++;
 			} else {
 				fprintf(stderr, "Error decoding PNG12 sprite data\n");
 				return 0;
@@ -749,6 +981,293 @@ uint32_t readSpriteDataV2(Sprite* s, uint8_t* data, uint64_t offset, uint32_t da
 		}
 	}
 	return p_offset;
+}
+
+int readPcxHeader(Sprite* s, FILE* file, uint64_t offset) {
+	fseek(file, offset, SEEK_SET);
+	uint16_t dummy;
+	if (fread(&dummy, sizeof(uint16_t), 1, file) != 1) {
+		fprintf(stderr, "Error reading uint16_t dummy\n");
+		return -1;
+	}
+	uint8_t encoding, bpp;
+	if (fread(&encoding, sizeof(uint8_t), 1, file) != 1) {
+		fprintf(stderr, "Error reading uint8_t encoding\n");
+		return -1;
+	}
+	if (fread(&bpp, sizeof(uint8_t), 1, file) != 1) {
+		fprintf(stderr, "Error reading uint8_t bpp\n");
+		return -1;
+	}
+	if (bpp != 8) {
+		fprintf(stderr, "Invalid PCX color depth: expected 8-bit, got %d", bpp);
+		return -1;
+	}
+	uint16_t rect[4];
+	if (fread(rect, sizeof(uint16_t), 4, file) != 4) {
+		fprintf(stderr, "Error reading rectangle\n");
+		return -1;
+	}
+	fseek(file, offset + 66, SEEK_SET);
+	uint16_t bpl;
+	if (fread(&bpl, sizeof(uint16_t), 1, file) != 1) {
+		fprintf(stderr, "Error reading bpl\n");
+		return -1;
+	}
+	s->Size[0] = rect[2] - rect[0] + 1;
+	s->Size[1] = rect[3] - rect[1] + 1;
+	if (encoding == 1) {
+		s->rle = bpl;
+	} else {
+		s->rle = 0;
+	}
+	return 0;
+}
+
+void get_basename_no_ext(const char* path, char* out, size_t out_size) {
+	if (!path || !out || out_size == 0) return;
+
+	// Find the last path separator
+	const char* last_slash = strrchr(path, '/');
+	const char* last_backslash = strrchr(path, '\\');
+	const char* filename = path;
+
+	if (last_slash || last_backslash) {
+		filename = (last_slash > last_backslash) ? last_slash + 1 : last_backslash + 1;
+	}
+
+	// Find the last dot (extension)
+	const char* last_dot = strrchr(filename, '.');
+	size_t len = last_dot ? (size_t) (last_dot - filename) : strlen(filename);
+
+	// Ensure we don't overflow the buffer
+	if (len >= out_size) {
+		len = out_size - 1;
+	}
+
+	strncpy(out, filename, len);
+	out[len] = '\0';
+}
+
+int readSpriteDataV1(Sprite* s, FILE* file, MugenSprite* sff, uint64_t offset, uint32_t datasize, uint32_t nextSubheader, Sprite* prev, std::vector<Palette>* palettes, bool c00) {
+	if (nextSubheader > offset) {
+		// Ignore datasize except last
+		datasize = nextSubheader - offset;
+	}
+
+	uint8_t ps;
+	if (fread(&ps, sizeof(uint8_t), 1, file) != 1) {
+		fprintf(stderr, "Error reading sprite ps data\n");
+		return -1;
+	}
+	bool paletteSame = ps != 0 && prev != NULL;
+	if (readPcxHeader(s, file, offset) != 0) {
+		fprintf(stderr, "Error reading sprite PCX header\n");
+		return -1;
+	}
+
+	fseek(file, offset + 128, SEEK_SET);
+	uint32_t palHash = 0;
+	uint32_t palSize;
+	if (c00 || paletteSame) {
+		palSize = 0;
+	} else {
+		palSize = 768;
+	}
+	if (datasize < 128 + palSize) {
+		datasize = 128 + palSize;
+	}
+	// printf("[DEBUG] src/main.cpp:%d\n", __LINE__);
+
+	size_t srcLen = datasize - (128 + palSize);
+	uint8_t* srcPx = (uint8_t*) malloc(srcLen);
+	if (!srcPx) {
+		fprintf(stderr, "Error allocating memory for sprite data\n");
+		return -1;
+	}
+	if (fread(srcPx, srcLen, 1, file) != 1) {
+		fprintf(stderr, "Error reading sprite PCX data pixel\n");
+		return -1;
+	}
+
+	s->image = NULL;
+	// printf("PCX: ps=%d ", ps);
+	if (paletteSame) {
+		Color32* png_palette;
+		// printf("[DEBUG] src/main.cpp:%d\n", __LINE__);
+		if (prev != NULL) {
+			s->palidx = prev->palidx;
+			// printf("Info: Same palette (%d,%d) with (%d,%d) = %d\n", s->Group, s->Number, prev->Group, prev->Number, prev->palidx);
+		}
+		if (s->palidx < 0) {
+			fprintf(stderr, "Error: invalid prev palette index %d\n", prev->palidx);
+			return -1;
+		}
+		uint8_t* px = RlePcxDecode(s, srcPx, srcLen);
+		free(srcPx);
+		if (!px) {
+			fprintf(stderr, "Error decoding PCX sprite data\n");
+			return -1;
+		}
+		// palHash = fast_hash(pal, 256);
+		// printf("old_pal=%d ", s->palidx);
+		// s->data = px;
+		setImageFromSprite(s, px);
+		// free(px);
+	} else {
+		Color32* new_palette = new Color32[256];
+		if (c00) {
+			fseek(file, offset + datasize - 768, 0);
+		}
+		uint8_t rgb[3];
+
+		// printf("palidx=%u offset=%u start_offset=%u\n", palettes->size(), offset, ftell(file));
+		for (int i = 0;i < 256;i++) {
+			if (fread(rgb, sizeof(uint8_t), 3, file) != 3) {
+				fprintf(stderr, "Error reading palette rgb data\n");
+				return -1;
+			}
+			new_palette[i].r = rgb[0];
+			new_palette[i].g = rgb[1];
+			new_palette[i].b = rgb[2];
+			new_palette[i].a = i == 0 ? 0 : 255;
+		}
+		// printf("palidx=%u offset=%u end_offset=%u\n", palettes->size(), offset, ftell(file));
+		// palettes->push_back(new_palette);
+		s->palidx = palettes->size() - 1;
+		// savePalette(pal, fmt.Sprintf("%v %v %v.act", "char_pal", s.Group, s.Number))
+		uint8_t* px = RlePcxDecode(s, srcPx, srcLen);
+		free(srcPx);
+		if (!px) {
+			fprintf(stderr, "Error decoding PCX sprite data\n");
+			return -1;
+		}
+		// palHash = fast_hash(pal, 256);
+		// printf("new_pal=%d ", s->palidx);
+		// s->data = px;
+		setImageFromSprite(s, px);
+		// free(px);
+	}
+	// printf("[DEBUG] src/main.cpp:%d ps=%d paletteSame=%d palidx=%d palLen=%d palSize=%d srcLen=%ld\n", __LINE__, ps, paletteSame, s->palidx, palettes->size(), palSize, srcLen);
+	// printf("%u\n", palHash);
+	// sff->palette_usage[s->palidx]++;
+	return 0;
+}
+
+int readSpriteDataV2(Sprite* s, FILE* file, uint64_t offset, uint32_t datasize, MugenSprite* sff) {
+	uint8_t* px = NULL;
+	if (s->rle > 0) return -1;
+
+	if (s->rle == 0) {
+		px = (uint8_t*) malloc(datasize);
+		if (!px) {
+			fprintf(stderr, "Error allocating memory for sprite data\n");
+			return -1;
+		}
+		// Read sprite data
+		fseek(file, offset, SEEK_SET);
+		if (fread(px, datasize, 1, file) != 1) {
+			fprintf(stderr, "Error reading V2 uncompress sprite data\n");
+			free(px);
+			return -1;
+		}
+	} else {
+		size_t srcLen;
+		uint8_t* srcPx = NULL;
+		fseek(file, offset + 4, SEEK_SET);
+		int format = -s->rle;
+		int rc;
+
+		if (2 <= format && format <= 4) {
+			if (datasize < 4) {
+				datasize = 4;
+			}
+			srcLen = datasize - 4;
+			srcPx = (uint8_t*) malloc(srcLen);
+			if (!srcPx) {
+				fprintf(stderr, "Error allocating memory for sprite data\n");
+				return -1;
+			}
+			// printf("srcPx=%p srcLen=%ld\n", srcPx, srcLen);
+			rc = fread(srcPx, srcLen, 1, file);
+			if (rc != 1) {
+				fprintf(stderr, "Error reading V2 RLE sprite data (len=%ld). RC=%d.\n", srcLen, rc);
+				free(srcPx);
+				return -1;
+			}
+		}
+
+		s->image = NULL;
+		switch (format) {
+		case 2:
+			// printf("Decoding sprite with RLE8\n");
+			// printf("RLE8: ");
+			px = Rle8Decode(s, srcPx, srcLen);
+			free(srcPx);
+			if (px) {
+				// s->data = px;
+				setImageFromSprite(s, px);
+			} else {
+				fprintf(stderr, "Error decoding RLE8 sprite data\n");
+				return -1;
+			}
+			break;
+		case 3:
+			// printf("Decoding sprite with RLE5\n");
+			// printf("RLE5: ");
+			px = Rle5Decode(s, srcPx, srcLen);
+			free(srcPx);
+			if (px) {
+				// s->data = px;
+				setImageFromSprite(s, px);
+				// free(px);
+			} else {
+				fprintf(stderr, "Error decoding RLE5 sprite data\n");
+				return -1;
+			}
+			break;
+		case 4:
+			// printf("Decoding sprite with LZ55 palidx=%d\n", s->palidx);
+			// printf("LZ5: ");
+			px = Lz5Decode(s, srcPx, srcLen);
+			// px = TestDecode(s, srcPx, srcLen);
+			free(srcPx);
+			if (px) {
+				// s->data = px;
+				setImageFromSprite(s, px);
+				// free(px);
+			} else {
+				fprintf(stderr, "Error decoding LZ5 sprite data\n");
+				return -1;
+			}
+			break;
+
+		case 10:
+		case 11:
+		case 12:
+			srcPx = (uint8_t*) malloc(datasize);
+			if (!srcPx) {
+				fprintf(stderr, "Error allocating memory for sprite data\n");
+				return -1;
+			}
+			if (fread(srcPx, datasize, 1, file) != 1) {
+				fprintf(stderr, "Error reading V2 PNG sprite data\n");
+				free(srcPx);
+				return -1;
+			}
+			px = PngDecode(s, srcPx, datasize);
+			free(srcPx);
+			if (px) {
+				// s->data = px;
+				setImageFromSprite(s, px);
+			} else {
+				fprintf(stderr, "Error decoding PNG sprite data\n");
+				return -1;
+			}
+			break;
+		}
+	}
+	return 0;
 }
 
 int loadSff(Sff* sff, uint8_t* data) {
@@ -893,3 +1412,6 @@ int loadSff(Sff* sff, uint8_t* data) {
 	}
 	return 0;
 }
+
+}	// namespace graphics
+}	// namespace love

@@ -41,63 +41,17 @@ bool SFFHandler::canDecode(Data* data)
 FormatHandler::DecodedImage SFFHandler::decode(Data *data)
 {
 	DecodedImage img;
-	Sff sff;
-	uint16_t index = 20;	// index of sprite to decode
+	img.width = 200;
+	img.height = 100;
+	img.size = img.width * img.height;
+	img.data = (unsigned char*) ::malloc(img.size);
+	img.format = PIXELFORMAT_R8;
 
-	// Decode the SFF file
-	if (loadSff(&sff, (uint8_t*) data->getData())) {
-		throw love::Exception("Could not decode SFF");
-	}
-	// img.width = sff.sprites[index]->Size[0];
-	// img.height = sff.sprites[index]->Size[1];
-	// img.size = img.width * img.height;
-	// img.data = sff.sprites[index]->data;
-	// img.format = PIXELFORMAT_R8;
-
-	img.width = sff.sprites[index]->Size[0];
-	img.height = sff.sprites[index]->Size[1];
-	img.size = img.width * img.height * 4;
-	if (sff.header.Ver0 == 2 && (sff.sprites[index]->rle == -12 || sff.sprites[index]->rle == -11)) {
-		img.data = sff.sprites[index]->data;
-		img.format = PIXELFORMAT_RGBA8;
-	} else if (sff.header.Ver0 == 2 && sff.sprites[index]->rle == -10) {
-		img.data = (unsigned char*) malloc(img.size);
-		img.format = PIXELFORMAT_RGBA8;
-		for (int y = 0; y < img.height; y++) {
-			for (int x = 0; x < img.width; x++) {
-				int i = y * img.width + x;
-				int palIdx = sff.sprites[index]->data[i];
-				uint32_t* pal = sff.palList.palettes[sff.sprites[index]->palidx];
-				img.data[i * 4 + 0] = (pal[palIdx] >> 16) & 0xFF;
-				img.data[i * 4 + 1] = (pal[palIdx] >> 8) & 0xFF;
-				img.data[i * 4 + 2] = (pal[palIdx]) & 0xFF;
-				img.data[i * 4 + 3] = (pal[palIdx] >> 24) & 0xFF;
-			}
+	unsigned char* p = img.data;
+	for (int i = 0;i < 100;i++)
+		for (int j = 0; j < img.width; j++) {
+			*p++ = i & 2 ? 0 : 1;
 		}
-	} else {
-		img.data = (unsigned char*) malloc(img.size);
-		// Convert indexed color (R8) sff.sprites[index]->data to RGBA
-		img.format = PIXELFORMAT_RGBA8;
-		for (int y = 0; y < img.height; y++) {
-			for (int x = 0; x < img.width; x++) {
-				int i = y * img.width + x;
-				int palIdx = sff.sprites[index]->data[i];
-				if (sff.header.Ver0 == 1) {
-					Color32* pal = sff.palettes[sff.sprites[index]->palidx];
-					img.data[i * 4 + 0] = pal[palIdx].r;
-					img.data[i * 4 + 1] = pal[palIdx].g;
-					img.data[i * 4 + 2] = pal[palIdx].b;
-					img.data[i * 4 + 3] = pal[palIdx].a;
-				} else {
-					uint32_t* pal = sff.palList.palettes[sff.sprites[index]->palidx];
-					img.data[i * 4 + 0] = (pal[palIdx] >> 16) & 0xFF;
-					img.data[i * 4 + 1] = (pal[palIdx] >> 8) & 0xFF;
-					img.data[i * 4 + 2] = (pal[palIdx]) & 0xFF;
-					img.data[i * 4 + 3] = (pal[palIdx] >> 24) & 0xFF;
-				}
-			}
-		}
-	}
 	
 	return img;
 }

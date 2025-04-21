@@ -2420,25 +2420,70 @@ int w_drawInstanced(lua_State *L)
 }
 
 int w_drawMugenSprite(lua_State* L) {
+	Drawable* drawable = nullptr;
 	MugenSprite* sff = luax_checktype<MugenSprite>(L, 1);
 	Palette* pal;
 	int64_t group;
 	int number, x, y;
+	int startidx;
+	int sid;
 
 	if (luax_istype(L, 2, Palette::type)) {
 		pal = luax_checktype<Palette>(L, 2);
 		group = luaL_checkinteger(L, 3);
 		number = luaL_checkinteger(L, 4);
-		x = luaL_checkinteger(L, 5);
-		y = luaL_checkinteger(L, 6);
-		instance()->drawMugenSprite(sff, pal, group, number, x, y);
+		sid = sff->getSpriteIndex(group, number);
+		drawable = sff->sprites[sid].image;
+		startidx = 5;
+		// x = luaL_checkinteger(L, 5);
+		// y = luaL_checkinteger(L, 6);
+		// instance()->drawMugenSprite(sff, pal, group, number, x, y);
 	} else {
+		
 		group = luaL_checkinteger(L, 2);
 		number = luaL_checkinteger(L, 3);
-		x = luaL_checkinteger(L, 4);
-		y = luaL_checkinteger(L, 5);
-		instance()->drawMugenSprite(sff, group, number, x, y);
+		sid = sff->getSpriteIndex(group, number);
+		drawable = sff->sprites[sid].image;
+		pal = &sff->palettes[sff->sprites[sid].palidx];
+		startidx = 4;
+		// Get palette from group and number
+		// pal = sff->getPalette(group, number);
+		// x = luaL_checkinteger(L, 4);
+		// y = luaL_checkinteger(L, 5);
+		// instance()->drawMugenSprite(sff, group, number, x, y);
 	}
+
+	// Set shader based on palette (TO BE FIXED)
+	Shader* prevShader = instance()->getShader();
+	float* palette_uniform = sff->palettes[sff->sprites[sid].palidx].uniform;
+	if (palette_uniform)
+	{
+		// Set palette_uniform for Shader
+		const Shader::UniformInfo* info;
+		int count = 4*256;	//RGBA components
+		int components = info->components;	// because vec4 => components = 4
+		float* values = info->floats;
+		values = palette_uniform;
+		luax_catchexcept(L, [&]() { sff->shader->updateUniform(info, count); });
+	}
+	else
+	{
+		//sff->sprites[sprite_index].palettes[0].uniform = sff->shader->getUniform("palette");
+		const Shader::UniformInfo* info;
+		int count = 4 * 256;	//RGBA components
+		int components = info->components;	// because vec4 => components = 4
+		sff->palettes[sff->sprites[sid].palidx].uniform = info->floats;
+		luax_catchexcept(L, [&]() { sff->shader->updateUniform(info, count); });
+	}
+	instance()->setShader(sff->shader);
+	luax_checkstandardtransform(L, startidx, [&](const Matrix4& m) {
+		luax_catchexcept(L, [&]() {
+				instance()->draw(drawable, m);
+			});
+		});
+
+	// Restore prev shader
+	instance()->setShader(prevShader);
 	return 0;
 }
 
@@ -2942,6 +2987,8 @@ int w_newMugenSprite(lua_State* L) {
 	const char* filename = luaL_checkstring(L, 1);
 
 	MugenSprite* spr = instance()->newMugenSprite(filename);
+	if (!spr)
+		return luaL_error(L, "Failed to load Mugen sprite: %s", filename);
 
 	luax_pushtype(L, spr);
 	spr->release();

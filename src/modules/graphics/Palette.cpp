@@ -12,6 +12,10 @@ namespace graphics
 love::Type Palette::type("Palette", &Object::type);
 
 // Constructor: Initialize the palette with an array of Color32
+Palette::Palette() {
+    std::memset(color, 0, sizeof(Color32) * 256); // Default to black if null
+}
+
 Palette::Palette(const Color32* colors)
 {
     // Copy the provided colors into the palette

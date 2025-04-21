@@ -1889,7 +1889,17 @@ std::vector<std::string> Graphics::getConstants(StackType)
 
 MugenSprite* Graphics::newMugenSprite(const char* filename)
 {
-	return new MugenSprite(filename);
+	MugenSprite* sff = new MugenSprite(filename);
+	// if (sff == nullptr)	{
+	// 	throw love::Exception("Failed to load Mugen sprite file: %s", filename);
+	// }
+	// auto gfx = Module::getInstance<graphics::Graphics>(Module::M_GRAPHICS);
+	// image::ImageData* imageData = new image::ImageData();
+	// graphics::Image::Settings settings;
+	// Image::Settings settings;
+
+	// sff->sprites[0].img = gfx->newImage(imageData, settings);
+	return sff;
 }
 
 MugenSprite* Graphics::newMugenSprite(const std::string& filename)

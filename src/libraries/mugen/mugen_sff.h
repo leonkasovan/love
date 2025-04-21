@@ -1,3 +1,4 @@
+#pragma once
 
 // LodePNG
 #include "lodepng/lodepng.h"
@@ -18,8 +19,17 @@
 
 // LOVE headers
 #include "common/Color.h"
+#include "image/Image.h"
+#include "graphics/Palette.h"
 
 #define MAX_PAL_NO 512
+
+namespace love {
+namespace graphics {
+
+// Forward declarations (MUST!!)
+class MugenSprite;
+class Image;
 
 // SFF
 typedef struct {
@@ -37,7 +47,6 @@ typedef struct {
 } PaletteList;
 
 typedef struct {
-	uint32_t* Pal;
 	uint16_t Group;
 	uint16_t Number;
 	uint16_t Size[2];
@@ -45,7 +54,8 @@ typedef struct {
 	int palidx;
 	int rle;
 	uint8_t coldepth;
-	uint8_t* data;
+	// uint8_t* data;
+	love::graphics::Image* image;
 	size_t atlas_x, atlas_y;
 } Sprite;
 
@@ -67,4 +77,19 @@ typedef struct {
 	int usePalette;
 } Atlas;
 
-int loadSff(Sff* sff, uint8_t* data);
+// Load from memory
+// int loadSff(Sff* sff, uint8_t* data);
+// int readSpriteDataV1(Sprite* s, u_int8_t* data, Sff* sff, uint64_t offset, uint32_t datasize, uint32_t nextSubheader, Sprite* prev, std::vector<love::Color32*>* palettes, bool c00, bool paletteSame);
+// uint32_t readSpriteDataV2(Sprite* s, Sff* data, uint64_t offset, uint32_t datasize, MugenSprite* sff);
+
+// Load from file
+int readSffHeader(MugenSprite* sff, FILE* file, uint32_t* lofs, uint32_t* tofs);
+int readSpriteHeaderV1(Sprite* sprite, FILE* file, uint32_t* ofs, uint32_t* size, uint16_t* link);
+int readSpriteHeaderV2(Sprite* sprite, FILE* file, uint32_t* ofs, uint32_t* size, uint32_t lofs, uint32_t tofs, uint16_t* link);
+int readSpriteDataV1(Sprite* s, FILE* file, MugenSprite* sff, uint64_t offset, uint32_t datasize, uint32_t nextSubheader, Sprite* prev, std::vector<Palette>* palettes, bool c00);
+int readSpriteDataV2(Sprite* s, FILE* file, uint64_t offset, uint32_t datasize, MugenSprite* sff);
+
+void spriteCopy(Sprite* dst, const Sprite* src);
+void printSprite(Sprite* sprite);
+}
+}
