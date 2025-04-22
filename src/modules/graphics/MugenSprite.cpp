@@ -78,11 +78,18 @@ MugenSprite::MugenSprite(const char* sff_file)
             std::array<int, 2> key = { gn[0], gn[1] };
             if (uniquePals.find(key) == uniquePals.end()) {
                 fseek(file, lofs + ofs, SEEK_SET);
-                // this->palettes[i] = new love::Color32[256];
-                if (fread(this->palettes[i].color, sizeof(uint32_t), 256, file) != 256) {
+                love::Color32 color32[256];
+                if (fread(color32, sizeof(love::Color32), 256, file) != 256) {
                     fclose(file);
                     throw love::Exception("Failed to read palette data: %s", sff_file);
-                }   
+                }
+                //Convert Color32 to Colorf
+                for (int c = 0;c < 256;c++) {
+                    this->palettes[i].colorf[c].r = (float)color32[c].r / 255.0f;
+                    this->palettes[i].colorf[c].g = (float)color32[c].g / 255.0f;
+                    this->palettes[i].colorf[c].b = (float)color32[c].b / 255.0f;
+                    this->palettes[i].colorf[c].a = (float)color32[c].a / 255.0f;
+                }
                 uniquePals[key] = i;
             } else {
                 // If the palette is not unique, use the existing one
@@ -138,7 +145,7 @@ MugenSprite::MugenSprite(const char* sff_file)
                     character = false;
                 }
                 // printf("Sprite[%d] (%d,%d) ", i, this->sprites[i]->Group, this->sprites[i]->Number);
-                if (readSpriteDataV1(&this->sprites[i], file, this, shofs + 32, size, xofs, prev, &this->palettes, character) != 0) {
+                if (readSpriteDataV1(&this->sprites[i], file, this, shofs + 32, size, xofs, prev, character) != 0) {
                     fclose(file);
                     throw love::Exception("Failed to read SFFv1 data: %s", sff_file);
                 }
@@ -178,12 +185,19 @@ MugenSprite::MugenSprite(const char* sff_file)
     // Setup shader
     std::string vertexShader;
     std::string pixelShader = R"(
-	extern vec4 palette[256];
-	vec4 effect(vec4 color, Image texture, vec2 textureCoords, vec2 screenCoords) {
-		int index = int(Texel(texture, textureCoords).r * 255.0);
-		return palette[index];
-	}
-	)";
+#version 330 core
+
+uniform sampler2D texture0;
+uniform vec4 palette[256];
+
+in vec2 textureCoords;
+out vec4 fragColor;
+
+void main() {
+    float indexF = texture(texture0, textureCoords).r;
+    int index = int(indexF * 255.0 + 0.5); // +0.5 for rounding
+    fragColor = palette[index];
+})";
     auto gfx = Module::getInstance<graphics::Graphics>(Module::M_GRAPHICS);
     shader = gfx->newShader(vertexShader, pixelShader);
 
@@ -223,7 +237,8 @@ int MugenSprite::getSpriteIndex(int group, int number) {
         return it->second;
     } else {
         // If not found, return an invalid index
-        return -1;
+        // return -1;
+        return 2;
     }
 }
 

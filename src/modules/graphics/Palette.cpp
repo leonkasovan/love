@@ -13,16 +13,16 @@ love::Type Palette::type("Palette", &Object::type);
 
 // Constructor: Initialize the palette with an array of Color32
 Palette::Palette() {
-    std::memset(color, 0, sizeof(Color32) * 256); // Default to black if null
+    std::memset(colorf, 0, sizeof(Colorf) * 256); // Default to black if null
 }
 
-Palette::Palette(const Color32* colors)
+Palette::Palette(const Colorf* colors)
 {
     // Copy the provided colors into the palette
     if (colors != nullptr)
-        std::memcpy(color, colors, sizeof(Color32) * 256);
+        std::memcpy(colorf, colors, sizeof(Colorf) * 256);
     else
-        std::memset(color, 0, sizeof(Color32) * 256); // Default to black if null
+        std::memset(colorf, 0, sizeof(Colorf) * 256); // Default to black if null
 }
 
 // Constructor: Load the palette from a .act file (C-string version) and its size 768 byte (RGB format).
@@ -41,10 +41,10 @@ Palette::Palette(const char* act_file)
 			if (file.gcount() == 768) {
 				// Convert the RGB data to Color32 format
 				for (int i = 0; i < 256; ++i) {
-					color[i].r = buffer[i * 3];     // Red
-					color[i].g = buffer[i * 3 + 1]; // Green
-					color[i].b = buffer[i * 3 + 2]; // Blue
-					color[i].a = i ? 255 : 0; // Set the first palette index (index 0) to transparent
+					colorf[i].r = (float)buffer[i * 3] / 255.0f;     // Red
+                    colorf[i].g = buffer[i * 3 + 1] / 255.0f; // Green
+                    colorf[i].b = buffer[i * 3 + 2] / 255.0f; // Blue
+					colorf[i].a = i ? 1.0f : 0.0f; // Set the first palette index (index 0) to transparent
 				}
 			} else {
 				file.close();

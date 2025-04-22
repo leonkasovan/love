@@ -21,11 +21,11 @@ public:
 
 	static love::Type type;
 
-	Color32 color[256];
-	float* uniform = NULL;	// for shader
+	// Color32 color32[256];
+	Colorf colorf[256];	// for shader
 
 	Palette();
-	Palette(const Color32* color);
+	Palette(const Colorf* color);
 	Palette(const char* act_file);
 	Palette(std::string act_file);
 	~Palette();

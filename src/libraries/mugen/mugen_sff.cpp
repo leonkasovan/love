@@ -438,7 +438,8 @@ void setImageFromSprite(Sprite* s, uint8_t* px) {
 	s->image = gfx->newImage(slices, settings);
 }
 
-int readSpriteDataV1(Sprite* s, u_int8_t* data, Sff* sff, uint64_t offset, uint32_t datasize, uint32_t nextSubheader, Sprite* prev, std::vector<love::Color32*>* palettes, bool c00, bool paletteSame) {
+// NOT USED. Use readSpriteDataV1 with FILE instead
+/*int readSpriteDataV1(Sprite* s, u_int8_t* data, Sff* sff, uint64_t offset, uint32_t datasize, uint32_t nextSubheader, Sprite* prev, bool c00, bool paletteSame) {
 	if (nextSubheader > offset) {
 		// Ignore datasize except last
 		datasize = nextSubheader - offset;
@@ -525,8 +526,8 @@ int readSpriteDataV1(Sprite* s, u_int8_t* data, Sff* sff, uint64_t offset, uint3
 			new_palette[i].b = rgb[2];
 		}
 		// printf("palidx=%u end offset=%u\n", palettes->size(), p_offset);
-		palettes->push_back(new_palette);
-		s->palidx = palettes->size() - 1;
+		sff->palettes.push_back(new_palette);
+		s->palidx = sff->palettes.size() - 1;
 		// savePalette(pal, fmt.Sprintf("%v %v %v.act", "char_pal", s.Group, s.Number))
 		// printf("[DEBUG] src/main.cpp:%d\n", __LINE__);
 		uint8_t* px = RlePcxDecode(s, srcPx, srcLen);
@@ -607,7 +608,7 @@ uint32_t readSpriteHeaderV2(Sprite* sprite, uint8_t* data, uint32_t* ofs, uint32
 	// printf("Sprite Format: %d\n", format);
 
 	return offset;
-}
+}*/
 
 uint8_t* Rle8Decode(Sprite* s, uint8_t* srcPx, int srcLen) {
 	if (srcLen == 0) {
@@ -1049,7 +1050,7 @@ void get_basename_no_ext(const char* path, char* out, size_t out_size) {
 	out[len] = '\0';
 }
 
-int readSpriteDataV1(Sprite* s, FILE* file, MugenSprite* sff, uint64_t offset, uint32_t datasize, uint32_t nextSubheader, Sprite* prev, std::vector<Palette>* palettes, bool c00) {
+int readSpriteDataV1(Sprite* s, FILE* file, MugenSprite* sff, uint64_t offset, uint32_t datasize, uint32_t nextSubheader, Sprite* prev, bool c00) {
 	if (nextSubheader > offset) {
 		// Ignore datasize except last
 		datasize = nextSubheader - offset;
@@ -1115,7 +1116,7 @@ int readSpriteDataV1(Sprite* s, FILE* file, MugenSprite* sff, uint64_t offset, u
 		setImageFromSprite(s, px);
 		// free(px);
 	} else {
-		Color32* new_palette = new Color32[256];
+		Colorf* new_palette = new Colorf[256];
 		if (c00) {
 			fseek(file, offset + datasize - 768, 0);
 		}
@@ -1127,14 +1128,14 @@ int readSpriteDataV1(Sprite* s, FILE* file, MugenSprite* sff, uint64_t offset, u
 				fprintf(stderr, "Error reading palette rgb data\n");
 				return -1;
 			}
-			new_palette[i].r = rgb[0];
-			new_palette[i].g = rgb[1];
-			new_palette[i].b = rgb[2];
-			new_palette[i].a = i == 0 ? 0 : 255;
+			new_palette[i].r = rgb[0] / 255.0f;
+			new_palette[i].g = rgb[1] / 255.0f;
+			new_palette[i].b = rgb[2] / 255.0f;
+			new_palette[i].a = i == 0 ? 0.0f : 255.0f;
 		}
 		// printf("palidx=%u offset=%u end_offset=%u\n", palettes->size(), offset, ftell(file));
-		// palettes->push_back(new_palette);
-		s->palidx = palettes->size() - 1;
+		sff->palettes.push_back(new_palette);
+		s->palidx = sff->palettes.size() - 1;
 		// savePalette(pal, fmt.Sprintf("%v %v %v.act", "char_pal", s.Group, s.Number))
 		uint8_t* px = RlePcxDecode(s, srcPx, srcLen);
 		free(srcPx);
@@ -1270,7 +1271,7 @@ int readSpriteDataV2(Sprite* s, FILE* file, uint64_t offset, uint32_t datasize, 
 	return 0;
 }
 
-int loadSff(Sff* sff, uint8_t* data) {
+/*int loadSff(Sff* sff, uint8_t* data) {
 	bool character = true;
 	// Copy filename to sff structure
 	// strncpy(sff->filename, filename, sizeof(sff->filename) - 1);
@@ -1373,7 +1374,7 @@ int loadSff(Sff* sff, uint8_t* data) {
 				// }
 				// printf("Sprite[%d] (%d,%d) ", i, sff->sprites[i]->Group, sff->sprites[i]->Number);
 				// memcpy(&ps, &data[shofs + last_offset], sizeof(uint8_t));
-				if (readSpriteDataV1(sff->sprites[i], data, sff, shofs + 32, size, xofs, prev, &sff->palettes, character, ps != 0 && prev != NULL) != 0) {
+				if (readSpriteDataV1(sff->sprites[i], data, sff, shofs + 32, size, xofs, prev, character, ps != 0 && prev != NULL) != 0) {
 					return -1;
 				}
 				// printf("Sprite[%d] (%d,%d) : ps=%d pal=%d\n", i, sff->sprites[i]->Group, sff->sprites[i]->Number, ps, sff->sprites[i]->palidx);
@@ -1411,7 +1412,7 @@ int loadSff(Sff* sff, uint8_t* data) {
 		sff->header.NumberOfPalettes = sff->palettes.size();
 	}
 	return 0;
-}
+}*/
 
 }	// namespace graphics
 }	// namespace love

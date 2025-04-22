@@ -2443,8 +2443,9 @@ int w_drawMugenSprite(lua_State* L) {
 		group = luaL_checkinteger(L, 2);
 		number = luaL_checkinteger(L, 3);
 		sid = sff->getSpriteIndex(group, number);
+		// Print info
+		printf("Drawing mugen sprite[%d] (%d,%d)\n", sid, group, number);
 		drawable = sff->sprites[sid].image;
-		pal = &sff->palettes[sff->sprites[sid].palidx];
 		startidx = 4;
 		// Get palette from group and number
 		// pal = sff->getPalette(group, number);
@@ -2455,26 +2456,11 @@ int w_drawMugenSprite(lua_State* L) {
 
 	// Set shader based on palette (TO BE FIXED)
 	Shader* prevShader = instance()->getShader();
-	float* palette_uniform = sff->palettes[sff->sprites[sid].palidx].uniform;
-	if (palette_uniform)
-	{
-		// Set palette_uniform for Shader
-		const Shader::UniformInfo* info;
-		int count = 4*256;	//RGBA components
-		int components = info->components;	// because vec4 => components = 4
-		float* values = info->floats;
-		values = palette_uniform;
-		luax_catchexcept(L, [&]() { sff->shader->updateUniform(info, count); });
-	}
-	else
-	{
-		//sff->sprites[sprite_index].palettes[0].uniform = sff->shader->getUniform("palette");
-		const Shader::UniformInfo* info;
-		int count = 4 * 256;	//RGBA components
-		int components = info->components;	// because vec4 => components = 4
-		sff->palettes[sff->sprites[sid].palidx].uniform = info->floats;
-		luax_catchexcept(L, [&]() { sff->shader->updateUniform(info, count); });
-	}
+	const Shader::UniformInfo* info = sff->shader->getUniformInfo("palette");
+	float* dst = info->floats;
+	memcpy(dst, sff->palettes[sff->sprites[sid].palidx].colorf, sizeof(float) * 4 * 256);
+	// Set palette_uniform for Shader
+	luax_catchexcept(L, [&]() { sff->shader->updateUniform(info, 4 * 256); });
 	instance()->setShader(sff->shader);
 	luax_checkstandardtransform(L, startidx, [&](const Matrix4& m) {
 		luax_catchexcept(L, [&]() {
@@ -2986,7 +2972,12 @@ int w_newMugenSprite(lua_State* L) {
 
 	const char* filename = luaL_checkstring(L, 1);
 
-	MugenSprite* spr = instance()->newMugenSprite(filename);
+	MugenSprite* spr;
+
+	luax_catchexcept(L,
+		[&]() { spr = instance()->newMugenSprite(filename); }
+	);
+
 	if (!spr)
 		return luaL_error(L, "Failed to load Mugen sprite: %s", filename);
 
